@@ -3,3 +3,6 @@ Report_Graphics/
 output.txt
 initialCondition.txt
 *.class
+*.jar
+jars/
+spark_compile.sh
