@@ -6,7 +6,7 @@ import java.io.Serializable;
 *   Since all three of our parallelization programs use Java, this
 *   is an obvious simplification.
 *
-* written November 2022 as part of CSS 534 HW 5
+* written November 2022 as part of CSS 534 HW 5 by Thomas Pinkava and Abdul-Muizz Imtiaz
 */
 
 public class Boid implements Serializable {

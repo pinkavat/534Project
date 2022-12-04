@@ -8,7 +8,7 @@ import java.util.ArrayList;
 *   Serial implementation of the Boids flocking algorithm, for
 *   comparison to parallel implementation results
 *
-* written November 2022 as part of CSS 534 HW 5
+* written November 2022 as part of CSS 534 HW 5 by Thomas Pinkava
 */
 
 public class SerialBoids {
