@@ -66,8 +66,14 @@ public class SerialBoids {
             System.out.print("\n");
 
             // Update boids for next timestep
+            // Copy boidset to act as input
+            ArrayList<Boid> boidsCopy = new ArrayList<Boid>(boids.size());
             for(Boid boid : boids){
-                boid.update(boids);
+                boidsCopy.add(new Boid(boid.posX, boid.posY, boid.velX, boid.velY));
+            }
+            // Update all boids
+            for(Boid boid : boids){
+                boid.update(boidsCopy);
             }
         }
         
