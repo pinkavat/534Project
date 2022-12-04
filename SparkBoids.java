@@ -75,9 +75,7 @@ public class SparkBoids {
 
         for(int i = 0; i < timeSteps; i++){
 
-
-
-            // Collect and output time tick, to be piped into output file
+            // 0) Collect and output time tick, to be piped into output file
             // TODO: this is the Achilles' heel of the algorithm in present state; too many Boids
             // returning to the master will cause memory overrun
             List<Boid> output = boids.collect();
@@ -85,6 +83,58 @@ public class SparkBoids {
                 System.err.print(boid);
             }
             System.err.println("");
+
+
+
+            // 1) Perform spatially hashed propagation: each Boid "receives" data from every neighbor in its
+            //    Moore neighborhood (i.e. all the other Boids with which it could possibly be flockmates) and
+            //    "emits" its own data to all the Moore neighborhoods of which it is a part
+            //
+            //  Dataset format: key, value pair where key is spatial region index and Value is a Tuple2 of
+            //                  two sets of Boids: the first are the boids in the center of the region, the second are
+            //                  all the boids in the region. Each boid emits nine messages, one of which contains itself
+            //                  in the first set and the second set, the remainder of which only contain itself in the second set.
+            JavaPairRDD<Integer, Tuple2<Set<Boid>,Set<Boid>>> propagatedBoids = boids.flatMapToPair( boid -> {
+                List<Tuple2<Integer, Tuple2<Set<Boid>,Set<Boid>>>> flatOut = new ArrayList<>();
+                
+                // TODO spatial hash
+                Set<Boid> core = new HashSet();
+                core.add(boid);
+                Set<Boid> surround = new HashSet();
+                surround.add(boid);
+                flatOut.add(new Tuple2(Integer.valueOf(0), new Tuple2(core, surround)));
+
+                return flatOut.iterator(); 
+            });
+
+           
+ 
+            // 2) Collect neighborhoods together by key, combining the value boidsets. We therefore finish with
+            //    one item per neighborhood, with a set of boids in its center, and a set of boids in its whole.
+            
+            propagatedBoids = propagatedBoids.reduceByKey((value1, value2) -> {
+                value1._1.addAll(value2._1);
+                value1._2.addAll(value2._2);
+                return value1;
+            });
+
+            /* TODO debug
+            Tuple2<Set<Boid>,Set<Boid>> norp = propagatedBoids.lookup(Integer.valueOf(0)).get(0);
+            System.out.println("\nLENN =" + norp._2().size()+"\n");
+            */
+
+            // 3) Update the boids in the center of each neighborhood with the data of the boids in the entire neighborhood.
+            boids = propagatedBoids.values().flatMap(value -> {
+                List<Boid> flatOut = new ArrayList();
+
+                for(Boid boid : value._1){
+                    // For every boid in the center of the neighborhood, add the effects of the other neighboring boids
+                    boid.update(value._2);
+                    flatOut.add(boid);
+                }
+
+                return flatOut.iterator();
+            });
         }
 
 

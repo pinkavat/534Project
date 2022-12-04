@@ -76,13 +76,29 @@ public class Boid implements Serializable {
 
 
     // toString function; crucial formatting for file output
+    @Override
     public String toString(){
         // Emit trailing comma so boids can be output together sans extra logic
         return this.posX + "," + this.posY + "," + this.velX + "," + this.velY + ",";
     }
 
 
+    // Equality function: necessary for Spark approach
+    @Override
+    public boolean equals(Object other){
+        if (other instanceof Boid){
+
+            Boid otherBoid = (Boid)other;
+
+            // Compare by position (good enough)
+            if(this.posX == otherBoid.posX && this.posY == otherBoid.posY) return true;
+        }
+        return false;
+    }
+
     
+
+
     /** 
     * The meat and bread of the Boids algorithm: the boid update step.
     * Given a set of other Boids, tests them for flockmatehood (proximity) and
@@ -115,7 +131,7 @@ public class Boid implements Serializable {
             // For every potential flockmate
 
             double distanceSquared = Math.pow(neighbor.posX - this.posX, 2.0) + Math.pow(neighbor.posY - this.posY, 2.0);
-            if(distanceSquared < FLOCK_RADIUS_SQUARED && !(neighbor.posX == this.posX && neighbor.posY == this.posY)){  // Exclude myself
+            if(distanceSquared < FLOCK_RADIUS_SQUARED && !(this.equals(neighbor))){  // Exclude myself
                 // For every actual flockmate
                 numActualFlockmates++;
 
