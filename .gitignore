@@ -1,0 +1,5 @@
+.DS_Store
+Report_Graphics/
+output.txt
+initialCondition.txt
+*.class
