@@ -15,6 +15,10 @@ import scala.Tuple2;
 *   Spark being responsible for a spatial-hashing-based reduction
 *   in comparisons
 *
+*   NOTE: because the Spark library is fond of writing heaps of diagnostic
+*         gibberish to stdout, output is piped to stderr instead, in reversal
+*         of usual scheme.
+*
 * written December 2022 as part of CSS 534 HW 5 by Thomas Pinkava
 */
 
@@ -38,24 +42,57 @@ public class SparkBoids {
             String inputFile = args[0];
             inputFileLines = sc.textFile(inputFile);
         } catch (Exception exception){
-            System.err.println("\nERROR: Submit initial condition file as first parameter\n");
+            System.out.println("\nERROR: Submit initial condition file as first parameter\n");
             System.exit(-1);
+            inputFileLines = null;  // To make the compiler happy
         }
 
         // Launch timer
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
+
+
+        // Parse boid strings into boid objects
+        JavaRDD<Boid> boids = inputFileLines.map( s -> {
+            String[] boidParams = s.split(",");
+
+            Double posX = Double.valueOf(boidParams[0]);
+            Double posY = Double.valueOf(boidParams[1]);
+            Double velX = Double.valueOf(boidParams[2]);
+            Double velY = Double.valueOf(boidParams[3]);
+
+            return new Boid(posX, posY, velX, velY); 
+        });
+
+        
+        // Enter into simulation loop
+        int timeSteps = 0;
+        if(args.length > 1){
+            timeSteps = Integer.parseInt(args[1]);
+        } else {
+            System.out.println("\nERROR: Submit number of timesteps as second parameter\n");
+            System.exit(-1);
+        }
+
+        for(int i = 0; i < timeSteps; i++){
 
 
 
-
-
+            // Collect and output time tick, to be piped into output file
+            // TODO: this is the Achilles' heel of the algorithm in present state; too many Boids
+            // returning to the master will cause memory overrun
+            List<Boid> output = boids.collect();
+            for(Boid boid : output){
+                System.err.print(boid);
+            }
+            System.err.println("");
+        }
 
 
         // Stop Spark
         sc.stop();
 
         // Stop timer and report
-        System.err.println("Elapsed Time: " + (System.currentTimeMillis() - startTime));
+        System.out.println("Elapsed Time = " + (System.nanoTime() - startTime) / 1.0e9);
 
     }
 }
