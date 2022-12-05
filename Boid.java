@@ -16,21 +16,20 @@ public class Boid implements Serializable {
 
     // ========== SIMULATION PARAMETERS (shared between all boids) ==========
 
-    static double FLOCK_RADIUS_SQUARED = 4900.0;    // Radius squared of local flock in units squared
+    static double FLOCK_RADIUS_SQUARED = 10000.0;   // Radius squared of local flock in units squared
 
-    static double TOO_CLOSE_SQUARED = 50.0;         // Radius squared beneath which boids repel each other
-                                                    // TODO repel augmentation factor...?
+    static double TOO_CLOSE_SQUARED = 70.0;         // Radius squared beneath which boids repel each other
 
-    static double ALIGNMENT_FACTOR = 0.125;         // TODO units...?
+    static double ALIGNMENT_FACTOR = 0.325;         // Contribution of alignment rule conditioned by this factor
 
-    static double COHESION_FACTOR = 0.5;            // Delta-V towards the flock Centre of Mass, in 
-                                                    // units per timestep
+    static double COHESION_FACTOR = 0.01;           // Contribution of cohesion rule conditioned by this factor
 
     static double TERMINAL_VELOCITY = 10.0;         // Maximum velocity vector magnitude in units per timestep 
 
     static double attractorX = 400.0;               // Coordinates of the attractor force core: boids too far from
     static double attractorY = 400.0;               // this point will redirect towards it.
-    static double ATTRACTION_FACTOR = 0.0005;       // TODO units
+    static double ATTRACTION_FACTOR = 0.001;        // Effect of attractor conditioned by this factor
+
 
 
     // ========== PER-BOID PROPERTIES ========== 
@@ -116,81 +115,55 @@ public class Boid implements Serializable {
     public void update(Iterable<Boid> others){
 
         // 1) Gather flockmate influences on velocity (steering rules)
-        int numActualFlockmates = 0;    // The number of actual flockmates
+        int numActualFlockmates = 0;
 
-        double sepVecX = 0.0;           // Separation Vector: points away from other boids; length is distance to other boids.
-        double sepVecY = 0.0;           // For repelling in separation rule
+        double sepContribX = 0.0, sepContribY = 0.0;    // Contribution to velocity from separation rule
+        double velTotalX = 0.0, velTotalY = 0.0;        // Contribution to velocity from alignment rule
+        double COMTotalX = 0.0, COMTotalY = 0.0;        // Contribution to velocity from cohesion rule
 
-        double totalVelX = 0.0;         // Total velocity of flockmates (pre-division by flockmate count)
-        double totalVelY = 0.0;
-
-        double totalCOMPosX = 0.0;      // Centre of mass position (pre-division by flockmate count)
-        double totalCOMPosY = 0.0;      //  "
-
-        for(Boid neighbor : others){
+        for( Boid neighbor : others){
             // For every potential flockmate
 
             double distanceSquared = Math.pow(neighbor.posX - this.posX, 2.0) + Math.pow(neighbor.posY - this.posY, 2.0);
-            if(distanceSquared < FLOCK_RADIUS_SQUARED && !(this.equals(neighbor))){  // Exclude myself
+            if(distanceSquared < FLOCK_RADIUS_SQUARED && !(this.equals(neighbor))){ // Exclude self
                 // For every actual flockmate
+
                 numActualFlockmates++;
 
-                // Add flockmate's contribution to separation rule
+                // If too close, add flockmate's contribution to separation rule
                 if(distanceSquared < TOO_CLOSE_SQUARED){
-                    // If too close, repel
-                    sepVecX = sepVecX + (this.posX - neighbor.posX);
-                    sepVecY = sepVecY + (this.posY - neighbor.posY);
+                    sepContribX += this.posX - neighbor.posX;
+                    sepContribY += this.posY - neighbor.posY;
                 }
 
                 // Add flockmate's contribution to alignment rule
-                totalVelX = totalVelX + neighbor.velX;
-                totalVelY = totalVelY + neighbor.velY;
-
-                // Add flockmate's contribution to cohesion rule Centre-of-mass
-                totalCOMPosX = totalCOMPosX + neighbor.posX;
-                totalCOMPosY = totalCOMPosY + neighbor.posY;
+                velTotalX += neighbor.velX;
+                velTotalY += neighbor.velY;
+    
+                // Add flockmate's contribution to cohesion rule
+                COMTotalX += neighbor.posX - this.posX;
+                COMTotalY += neighbor.posY - this.posY;
             }
         }
 
 
-
-        // 2) If there are flockmates to care about, apply flockmate rules to velocity
+        // 2) If there are flockmates to care about, apply rules to velocity
         if(numActualFlockmates > 0){
 
-            // Add separation rule to velocity
-            this.velX = this.velX + sepVecX;
-            this.velY = this.velY + sepVecY;
+            //Divide total contributions by number of flockmates
+            double velContribX = ((velTotalX / (double)numActualFlockmates)) * ALIGNMENT_FACTOR;
+            double velContribY = ((velTotalY / (double)numActualFlockmates)) * ALIGNMENT_FACTOR;
 
+            double COMContribX = ((COMTotalX / (double)numActualFlockmates)) * COHESION_FACTOR;
+            double COMContribY = ((COMTotalY / (double)numActualFlockmates)) * COHESION_FACTOR;
 
-
-            // Determine alignment rule average velocity
-            double avgVelX = totalVelX / numActualFlockmates;
-            double avgVelY = totalVelY / numActualFlockmates;
-
-            // Add alignment rule to velocity
-            this.velX = this.velX + (avgVelX - this.velX) * ALIGNMENT_FACTOR;
-            this.velY = this.velY + (avgVelY - this.velY) * ALIGNMENT_FACTOR;
-
-
-
-            // Determine cohesion rule COM
-            double COMPosX = totalCOMPosX / numActualFlockmates;
-            double COMPosY = totalCOMPosY / numActualFlockmates;
-            double COMWardX = (COMPosX - this.posX);
-            double COMWardY = (COMPosY - this.posY);
-
-            // Normalize to get COM-ward direction
-            double COMWardLength = Math.sqrt(COMWardX * COMWardX + COMWardY * COMWardY);
-            COMWardX = COMWardX / COMWardLength;
-            COMWardY = COMWardY / COMWardLength;
-        
-            // Add cohesion rule to velocity
-            this.velX = this.velX + (COMWardX * COHESION_FACTOR);
-            this.velY = this.velY + (COMWardY * COHESION_FACTOR);
+            // Add to velocity vector
+            this.velX += sepContribX + velContribX + COMContribX;
+            this.velY += sepContribY + velContribY + COMContribY;
         }
 
-
-        // 3) Apply attraction force
+     
+        // 3) Apply attraction force (to keep boids on screen)
         double attractorWardX = attractorX - this.posX;
         double attractorWardY = attractorY - this.posY;
         this.velX = this.velX + attractorWardX * ATTRACTION_FACTOR;
