@@ -88,44 +88,6 @@ public class SparkBoids {
             System.err.println("");
 
 
-            // ========== BEGIN NAIVE APPROACH (because spatial hash is causing hangs) ==========
-           
-            /* 
-            JavaRDD<Boid> others = boids.map(boid -> {
-                return new Boid(boid.posX, boid.posY, boid.velX, boid.velY);
-            });
-        
-            JavaPairRDD<Boid, Boid> allPairs = boids.cartesian(others);
-            
-            boids = allPairs.map(boidSetPair ->{
-                ArrayList<Boid> b = new ArrayList<>(1);
-                b.add(boidSetPair._2);
-                boidSetPair._1.update(b);
-                return boidSetPair._1;
-            });
-            */
-            /*
-            JavaRDD<Set<Boid>> others = boids.map(boid -> {
-                Set<Boid>out = new HashSet<>(1);
-                out.add(new Boid(boid.posX, boid.posY, boid.velX, boid.velY));
-                return out;
-            });
-
-            JavaPairRDD<Boid, Set<Boid>> allPairs = boids.cartesian(others);
-
-            allPairs = allPairs.reduceByKey((value1, value2) -> {
-                value1.addAll(value2);
-                return value1;
-            });
-
-            allPairs.foreach(boidSetPair -> {
-                boidSetPair._1.update(boidSetPair._2);
-            });
-
-            boids = allPairs.keys();
-            */
-        
-            // ========== BEGIN NONFUNCTIONAL SPATIAL HASHING APPROACH ==========
             
             // Begin spatial hashing by collecting the central chunks of each superchunk together, to
             // make chunk traffic on a per-chunk rather than a per-boid basis
@@ -140,7 +102,8 @@ public class SparkBoids {
                 int chunkY = (int)(boid.posY / FLOCK_RADIUS);
 
                 Set<Boid> core = new HashSet<>();
-                core.add(boid);
+                core.add(new Boid(boid.posX, boid.posY, boid.velX, boid.velY)); // Duplication allows spark speedup, for some
+                                                                                // sort of distributed heap reason, presumably
 
                 flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX), Integer.valueOf(chunkY)), core));
 
@@ -150,8 +113,11 @@ public class SparkBoids {
 
             // Combine the core sets (simple append)
             combinedCores = combinedCores.reduceByKey( (value1, value2) -> {
-                value1.addAll(value2);
-                return value1;
+                // Duplicate set (accelerates spark)
+                Set<Boid> dupe = new HashSet<Boid>();
+                dupe.addAll(value1);
+                dupe.addAll(value2);
+                return dupe;
             });
 
 
@@ -170,28 +136,30 @@ public class SparkBoids {
                 Integer chunkX = kvPair._1._1;
                 Integer chunkY = kvPair._1._2;
 
-                // Duplicate message set
-                Set<Boid> dupe = new HashSet(kvPair._2.size());
+                // Duplicate core and message set (message necessary for data flow, duping core too accelerates spark)
+                Set<Boid> coreDupe = new HashSet(kvPair._2.size());
+                Set<Boid> surroundDupe = new HashSet(kvPair._2.size());
                 for(Boid boid : kvPair._2){
-                    dupe.add(new Boid(boid.posX, boid.posY, boid.velX, boid.velY));
+                    surroundDupe.add(new Boid(boid.posX, boid.posY, boid.velX, boid.velY));
+                    coreDupe.add(new Boid(boid.posX, boid.posY, boid.velX, boid.velY));
                 }
 
                 // The "core set" is the central chunk of the 9x9 chunks of the spatial hash; it contains 'true' boids,
                 // that receive data.
-                flatOut.add(new Tuple2(kvPair._1, new Tuple2(kvPair._2, dupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX), Integer.valueOf(chunkY)), new Tuple2(coreDupe, surroundDupe)));
                                 
                 // We create a dummy empty core for the messages to neighboring chunksets
                 Set<Boid> dummy = new HashSet();
                 
                 // Moore neighborhood
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX-1), Integer.valueOf(chunkY-1)),new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX-1), Integer.valueOf(chunkY)),  new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX-1), Integer.valueOf(chunkY+1)),new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX+1), Integer.valueOf(chunkY-1)),new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX+1), Integer.valueOf(chunkY)),  new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX+1), Integer.valueOf(chunkY+1)),new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX),   Integer.valueOf(chunkY-1)),new Tuple2(dummy, dupe)));
-                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX),   Integer.valueOf(chunkY+1)),new Tuple2(dummy, dupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX-1), Integer.valueOf(chunkY-1)),new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX-1), Integer.valueOf(chunkY)),  new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX-1), Integer.valueOf(chunkY+1)),new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX+1), Integer.valueOf(chunkY-1)),new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX+1), Integer.valueOf(chunkY)),  new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX+1), Integer.valueOf(chunkY+1)),new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX),   Integer.valueOf(chunkY-1)),new Tuple2(dummy, surroundDupe)));
+                flatOut.add(new Tuple2(new Tuple2(Integer.valueOf(chunkX),   Integer.valueOf(chunkY+1)),new Tuple2(dummy, surroundDupe)));
 
                 return flatOut.iterator();
 
@@ -202,21 +170,29 @@ public class SparkBoids {
             //    one item per neighborhood, with a set of boids in its center, and a set of boids in its whole.
             
             propagatedBoids = propagatedBoids.reduceByKey((value1, value2) -> {
-                value1._1.addAll(value2._1);
-                value1._2.addAll(value2._2);
-                return value1;
+                // Duplicate the data (makes spark work faster)
+                Set<Boid> dupeCore = new HashSet<Boid>();
+                Set<Boid> dupeSurround = new HashSet<Boid>();
+                dupeCore.addAll(value1._1);
+                dupeCore.addAll(value2._1);
+                dupeSurround.addAll(value1._2);
+                dupeSurround.addAll(value2._2);
+                return new Tuple2(dupeCore, dupeSurround);
             });
 
 
 
             // 3) Update the boids in the center of each neighborhood with the data of the boids in the entire neighborhood.
             boids = propagatedBoids.values().flatMap(value -> {
- 
+                List<Boid> flatOut = new ArrayList<Boid>(value._1.size());
                 for(Boid boid : value._1){
                     // For every boid in the center of the neighborhood, add the effects of the other neighboring boids
-                    boid.update(value._2);
+                    // Duplicate the data (makes spark work faster)
+                    Boid dupe = new Boid(boid.posX, boid.posY, boid.velX, boid.velY);
+                    dupe.update(value._2);
+                    flatOut.add(dupe);
                 }
-                return value._1.iterator();
+                return flatOut.iterator();
             });
 
             
