@@ -4,5 +4,8 @@ output.txt
 initialCondition.txt
 *.class
 *.jar
+*.log
+logs/
+target/
 jars/
 spark_compile.sh
