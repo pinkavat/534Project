@@ -1,0 +1,43 @@
+<!-- You may place comments in this type of file format. Use standard XML comment scheme. -->
+
+<!--
+	This document MUST be formatted using standard XML formatting rules. If not, this document
+	will not parse correctly and will cause the library to throw an Exception on startup.
+	
+	There is only one part of this that is order dependent - the order in which the nodes are
+	specified determines their rank. Nodes listed earlier have lower ranks than those listed
+	later.
+	
+-->	
+
+<nodes>
+
+	<node>
+	
+		<master>true</master>
+		
+		<!-- Hostname is required, and may either be an FQDN or IP address -->
+		<!-- Make sure the name/address specified is reachable by all other nodes -->
+		<hostname>cssmpi5h.uwb.edu</hostname>
+		
+		<!-- Masshome is where MASS.jar and any other dependencies of your application reside -->
+		<masshome>/home/NETID/pinkavat/534Project/BoidsMASS</masshome>
+
+                <!-- Don't forget to specify our port for each node -->
+                <port>58190</port>
+
+	</node>
+
+	<!-- Connection to CSSMPI6 -->
+	
+	<node>
+		<hostname>cssmpi6h.uwb.edu</hostname>
+		<masshome>/home/NETID/pinkavat/534Project/BoidsMASS</masshome>
+		<username>pinkavat</username>
+		<privatekey>~/.ssh/id_rsa</privatekey>
+
+                <port>58190</port>
+	</node>
+	
+
+</nodes>

@@ -1,0 +1,6 @@
+14:23:25.315 [main] [DEBUG] Boids: Initializing MASS Library
+14:23:25.460 [main] [DEBUG] Adding a node (cssmpi5h.uwb.edu) to the cluster...
+14:23:25.460 [main] [DEBUG] This node is the MASTER node
+14:23:25.460 [main] [DEBUG] Adding a node (cssmpi6h.uwb.edu) to the cluster...
+14:23:25.460 [main] [DEBUG] This node is a REMOTE node
+14:23:25.467 [main] [DEBUG] rank 1: cssmpi6h.uwb.edu
