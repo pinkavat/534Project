@@ -1,4 +1,4 @@
-package edu.uwb.css534;
+package edu.uwb.css534; // Damn. This is what comes of multiple dependency management strategies.
 
 import java.io.Serializable;
 

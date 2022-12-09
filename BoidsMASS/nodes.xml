@@ -28,7 +28,7 @@
 
 	</node>
 
-	<!-- Connection to CSSMPI6 -->
+        <!--
 	
 	<node>
 		<hostname>cssmpi6h.uwb.edu</hostname>
@@ -38,6 +38,6 @@
 
                 <port>58190</port>
 	</node>
-	
+	-->
 
 </nodes>
