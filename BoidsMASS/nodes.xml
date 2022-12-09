@@ -28,8 +28,8 @@
 
 	</node>
 
-        <!--
-	
+        
+        <!--	
 	<node>
 		<hostname>cssmpi6h.uwb.edu</hostname>
 		<masshome>/home/NETID/pinkavat/534Project/BoidsMASS</masshome>
@@ -38,6 +38,24 @@
 
                 <port>58190</port>
 	</node>
-	-->
+
+	<node>
+		<hostname>cssmpi7h.uwb.edu</hostname>
+		<masshome>/home/NETID/pinkavat/534Project/BoidsMASS</masshome>
+		<username>pinkavat</username>
+		<privatekey>~/.ssh/id_rsa</privatekey>
+
+                <port>58190</port>
+	</node>
+        
+	<node>
+		<hostname>cssmpi8h.uwb.edu</hostname>
+		<masshome>/home/NETID/pinkavat/534Project/BoidsMASS</masshome>
+		<username>pinkavat</username>
+		<privatekey>~/.ssh/id_rsa</privatekey>
+
+                <port>58190</port>
+	</node>
+        -->
 
 </nodes>

@@ -132,6 +132,8 @@ public class BoidsMASS{
             // 4) Each BoidAgent migrates to a new BoidSpace, if necessary.
             agents.manageAll();
 
+            if((i % 5) == 0) // Unbelievable, Java!
+                System.err.println("Completed tick " + i);
         }
 
 
@@ -146,71 +148,3 @@ public class BoidsMASS{
 
     }
 }
-
-
-/* TODO: quickstart imported for code shell
-        MASS.getLogger().debug( "MASS library initialized" );
-        
-        int x = 10;
-        int y = 10;
-        int z = 10;
-    
-        MASS.getLogger().debug( "Quickstart creating Places..." );
-        Places places = new Places( 1, Matrix.class.getName(), ( Object ) new Integer( 0 ), x, y, z );
-        MASS.getLogger().debug( "Places created" );
-        
-        // instruct all places to return the hostnames of the machines on which they reside
-        Object[] placeCallAllObjs = new Object[ x * y * z ];
-        MASS.getLogger().debug( "Quickstart sending callAll to Places..." );
-        Object[] calledPlacesResults = ( Object[] ) places.callAll( Matrix.GET_HOSTNAME, placeCallAllObjs );
-        MASS.getLogger().debug( "Places callAll operation complete" );
-        
-        // create Agents (number of Agents = x * y in this case), in Places
-        MASS.getLogger().debug( "Quickstart creating Agents..." );
-        Agents agents = new Agents( 1, Nomad.class.getName(), null, places, x * y );
-        MASS.getLogger().debug( "Agents created" );
-
-        // instruct all Agents to return the hostnames of the machines on which they reside
-        Object[] agentsCallAllObjs = new Object[ x * y ];
-        MASS.getLogger().debug( "Quickstart sending callAll to Agents..." );
-        Object[] calledAgentsResults = ( Object[] ) agents.callAll( Nomad.GET_HOSTNAME, agentsCallAllObjs );
-        MASS.getLogger().debug( "Agents callAll operation complete" );
-        
-        // move all Agents across the Z dimension to cover all Places
-        for (int i = 0; i < z; i ++) {
-            
-            // tell Agents to move
-            MASS.getLogger().debug( "Quickstart instructs all Agents to migrate..." );
-            agents.callAll(Nomad.MIGRATE);
-            MASS.getLogger().debug( "Agent migration complete" );
-            
-            // sync all Agent status
-            MASS.getLogger().debug( "Quickstart sending manageAll to Agents..." );
-            agents.manageAll();
-            MASS.getLogger().debug( "Agents manageAll operation complete" );
-            
-            // find out where they live now
-            MASS.getLogger().debug( "Quickstart sending callAll to Agents..." );
-            calledAgentsResults = ( Object[] ) agents.callAll( Nomad.GET_HOSTNAME, agentsCallAllObjs );
-            MASS.getLogger().debug( "Agents callAll operation complete" );
-            
-        }
-        
-        // find out where all of the Agents wound up when all movements complete
-        MASS.getLogger().debug( "Quickstart sending callAll to Agents to get final landing spot..." );
-        calledAgentsResults = ( Object[] ) agents.callAll(Nomad.GET_HOSTNAME, agentsCallAllObjs );
-        MASS.getLogger().debug( "Agents callAll operation complete" );
-        
-        // orderly shutdown
-        MASS.getLogger().debug( "Quickstart instructs MASS library to finish operations..." );
-        MASS.finish();
-        MASS.getLogger().debug( "MASS library has stopped" );
-        
-        // calculate / display execution time
-        long execTime = new Date().getTime() - startTime;
-        System.out.println( "Execution time = " + execTime + " milliseconds" );
-        
-     }
-     
-}
-*/
