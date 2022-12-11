@@ -8,7 +8,7 @@ import edu.uw.bothell.css.dsl.MASS.*;
 
 /* BoidPlace.java
 *
-*   TODO doc
+*   MASS Place representation of a grid-cell subdivision of Boid simulation space
 *
 * written December 2022 as part of CSS 534 HW 5 by Thomas Pinkava
 */
@@ -21,8 +21,10 @@ public class BoidPlace extends Place {
         public static final int exchangeBoids_ = 2;
         public static final int aggregateBoids_ = 3;
 
-        // TODO doc
+        // The set of boids currently within this grid cell;
+        // updated by getOwnBoids calls from the BoidAgents currently 'here'
         Set<Boid> selfBoids;
+
 
         /**
         *   Constructor
@@ -47,7 +49,8 @@ public class BoidPlace extends Place {
             selfBoids = new HashSet<Boid>();
         }
 
-        // TODO doc
+
+        // MASS callAll and exchangeAll handle
         public Object callMethod(int functionId, Object args){
             switch(functionId){
                 case getOwnBoids_: return getOwnBoids(args);
@@ -57,7 +60,8 @@ public class BoidPlace extends Place {
             return null;
         }
 
-        // TODO doc
+
+        // Fetches and stores boid data for all boid agents in this place
         public Set<Boid> getOwnBoids(Object args){
             selfBoids = new HashSet<Boid>();
             for(Agent boidAgent : getAgents()){
@@ -66,17 +70,20 @@ public class BoidPlace extends Place {
             return selfBoids;
         }
 
-        // TODO doc
+
+        // Transmits all boids within this place
         public Set<Boid> exchangeBoids(Object args){
             return selfBoids;
         }
 
-        // TODO doc
+
+        // Receives all boids within this place, and adds our own boidset
+        // in anticipation of agent update calls
         public Object aggregateBoids(Object args){
             Object[] messages = getInMessages();
             if(messages != null){
                 for(Object boidDataObject : messages){
-                    if(boidDataObject != null){ // TODO mention
+                    if(boidDataObject != null){ // Ignore OOB
                         selfBoids.addAll((Set<Boid>)boidDataObject);
                     }
                 }
